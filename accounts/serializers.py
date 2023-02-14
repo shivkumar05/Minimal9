@@ -99,34 +99,53 @@ class Profile_Pic_serializerField12(serializers.ModelSerializer):
         fields =['user','images','background_image']
 
 
-class CommentsSerializer(serializers.ModelSerializer):
-    parent = TreeNodeChoiceField(queryset = Comments.objects.all())
+class ReplySerializer(serializers.ModelSerializer):
+    
+    parent = TreeNodeChoiceField(queryset = Reply.objects.all())
     def __init__(self, instance=None, data=..., **kwargs):
-        super().__init__(instance, data, **kwargs)
+            super().__init__(instance, data, **kwargs)
         
-        self.fields['parent'].lablel = ''
-        self.fields['parent'].required = False
+            self.fields['parent'].lablel = ''
+            self.fields['parent'].required = False
     class Meta:
-        model = Comments
-        fields =['cid','Post','user','datetime','parent','text']
+        model = Reply
+        fields = ['rid','user','Comments','parent','content','datetime']
 
-class CommentsSerializer1(serializers.ModelSerializer):
-    parent = TreeNodeChoiceField(queryset = Comments.objects.all())
+class ReplySerializer1(serializers.ModelSerializer):
+    
+    parent = TreeNodeChoiceField(queryset = Reply.objects.all())
+    
     def __init__(self, instance=None, data=..., **kwargs):
-        super().__init__(instance, data, **kwargs)
+            super().__init__(instance, data, **kwargs)
         
-        self.fields['parent'].lablel = ''
-        self.fields['parent'].required = False
+            self.fields['parent'].lablel = ''
+            self.fields['parent'].required = False
     user = RegisterSerializer12(many=False,read_only=True)
     class Meta:
+        model = Reply
+        fields = ['rid','user','Comments','parent','content','datetime']
+    
+
+
+class CommentsSerializer(serializers.ModelSerializer):
+    user = RegisterSerializer12(many=False,read_only=True)
+    reply = ReplySerializer1(many=True,read_only=True)
+    
+    class Meta:
         model = Comments
-        fields =['cid','Post','user','datetime','parent','text']
+        fields =['cid','Post','user','datetime','text','reply']
+
+class CommentsSerializer1(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Comments
+        fields =['cid','Post','user','datetime','text']
        
     
 
 
 class User_Post_serializer(serializers.ModelSerializer):
-    comment = CommentsSerializer1(many=True, read_only=True)
+    comment = CommentsSerializer(many=True, read_only=True)
     liked_by = RegisterSerializer12(many=True,read_only=True)
     total_likes = serializers.SerializerMethodField()
     class Meta:
@@ -137,7 +156,7 @@ class User_Post_serializer(serializers.ModelSerializer):
 
 class User_Post_get_serializer(serializers.ModelSerializer):
     user = RegisterSerializer12(many=False,read_only=True)
-    comment = CommentsSerializer1(many=True, read_only=True)
+    comment = CommentsSerializer(many=True, read_only=True)
     liked_by = RegisterSerializer12(many=True,read_only=True)
     total_likes = serializers.SerializerMethodField()
     class Meta:

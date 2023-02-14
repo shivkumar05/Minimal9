@@ -84,22 +84,41 @@ class Post(models.Model):
             url = ''
         return url
 
-class Comments(MPTTModel):
+class Comments(models.Model): 
        
     cid = models.AutoField(auto_created=True,primary_key=True)
     text = models.CharField(max_length=500)
-    parent = TreeForeignKey('self',on_delete=models.CASCADE,null=True, blank=True, related_name='children')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,blank=True, related_name='users')
+    #parent = TreeForeignKey('self',on_delete=models.CASCADE,null=True, blank=True, related_name='children')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
     datetime = models.DateTimeField(auto_now_add=True)
     Post =  models.ForeignKey(Post,on_delete=models.CASCADE,related_name='comment')
     
-    class MPTTMeta:
-        order_insertion_by = ['datetime']
+    # class MPTTMeta:
+    #     order_insertion_by = ['datetime']
     
     def __str__(self):
         return f'Comment by {self.name}'
     def __str__(self):
         return str(self.text)
+
+class Reply(MPTTModel):
+       
+    rid = models.AutoField(auto_created=True,primary_key=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
+    Comments =  models.ForeignKey(Comments,on_delete=models.CASCADE,related_name='reply')
+    parent = TreeForeignKey('self',on_delete=models.CASCADE,null=True, blank=True, related_name='children') 
+    content =  models.CharField(max_length=500)
+    datetime = models.DateTimeField(auto_now_add=True)
+    
+    class MPTTMeta:
+        order_insertion_by = ['datetime']
+    
+    def __str__(self):
+        return f'Reply by {self.name}'
+    def __str__(self):
+        return str(self.text)
+    def __str__(self):
+        return self.text[0:10]+'...'+'by '+ self.user.email
 
 
 class Social(models.Model):

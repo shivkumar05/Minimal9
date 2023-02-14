@@ -148,8 +148,8 @@ class Post_view_user(generics.ListAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = User_Post_get_serializer
-    def get(request):
-        accounts = Post.objects.order_by('-created_date')
+    def get(self,request):
+        accounts = Post.objects.filter(user = request.user).order_by('-created_date')
         serializer =User_Post_serializer(accounts , many = True) 
         return Response(serializer.data)
          
@@ -322,16 +322,16 @@ class User_Profile_Pic(generics.ListCreateAPIView):
 class User_Profile_pic_Update(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    def get(self,request,pk):  
+    def get(self,request):  
         try:              
-         ac = Profile_Pic.objects.get(pk=pk)
+         ac = Profile_Pic.objects.get(user = request.user)
         except Profile_Pic.DoesNotExist:
           return Response(status=404)   
         serializer =  Profile_Pic_serializer(ac) 
         return Response(serializer.data) 
-    def put(self,request ,pk): 
+    def put(self,request ): 
       try:              
-       ac = Profile_Pic.objects.get(pk=pk)
+       ac = Profile_Pic.objects.get(user = request.user)
       except Profile_Pic.DoesNotExist:
         return Response(status=404)  
       serializer = Profile_Pic_serializer(ac , data = request.data )   
@@ -356,10 +356,10 @@ def Like_Post(request,id):
 class CommentsViewSet(APIView):
     def get(self, request):
         com = Comments.objects.all()
-        serializer = CommentsSerializer1(com , many = True)
+        serializer = CommentsSerializer(com , many = True)
         return Response(serializer.data)  
     def post(self , request):
-      file_serializer = CommentsSerializer(data=request.data) 
+      file_serializer = CommentsSerializer1(data=request.data) 
       if file_serializer.is_valid():
         file_serializer.save()
         ddb = boto3.resource('dynamodb', 
@@ -381,6 +381,33 @@ def Comments_delete(request,pk):
       x.delete()
       return Response("Comments is successfully delete")
 
+# User_replay with this API user can comment on other user's post
+class ReplyViewSet(APIView):
+    def get(self, request):
+       if request.method =='GET':
+        social = Reply.objects.all()
+        serializer = ReplySerializer1(social , many = True)
+        return Response(serializer.data) 
+    def post(self , request) :
+      file_serializer = ReplySerializer(data=request.data) 
+      if file_serializer.is_valid():              
+        file_serializer.save()
+        ddb = boto3.resource('dynamodb', 
+                     aws_access_key_id='AKIA6GFBKQFECVUSCAHY', 
+                     aws_secret_access_key='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',
+                     region_name ='us-west-2')
+        table = ddb.Table('Reply')
+        table.put_item(
+            Item=file_serializer.data
+            ) 
+        return Response(file_serializer.data)
+      return response.Response(file_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+def reply_delete(request,pk):
+      x = Reply.objects.get(rid = pk)
+      x.delete()
+      return Response("Reply  is successfully delete")
 
 # PostDetail with this API user can see Detailed view of any Post
 class PostDetail(APIView):
@@ -470,12 +497,12 @@ class CategoryListView(generics.ListAPIView):
 
 
 @api_view(['GET'])
-def show(request,pk):
+def show(request):
       if request.method =='GET':
-        user = CustomUser.objects.filter(pk=pk)
+        print(request.user)
+        user = CustomUser.objects.filter(username=request.user)
         serializer = RegisterSerializer(user,many=True)
         return Response(serializer.data)
-
 
 @api_view(['GET'])
 def video(request,pk):
